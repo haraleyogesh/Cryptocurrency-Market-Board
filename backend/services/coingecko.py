@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SimpleCache:
     """Thread-safe, in-memory Cache with Time-To-Live (TTL) and stale fallback support."""
-    def __init__(self, default_timeout=120):
+    def __init__(self, default_timeout=180):
         self._cache = {}
         self.default_timeout = default_timeout
         self._lock = threading.Lock()
@@ -43,8 +43,8 @@ class SimpleCache:
 class CoinGeckoService:
     def __init__(self):
         self.base_url = Config.COINGECKO_BASE_URL
-        # Set default cache TTL to 120 seconds to reduce overall API calls
-        self.cache = SimpleCache(default_timeout=120)
+        # Set default cache TTL to 180 seconds to reduce overall API calls
+        self.cache = SimpleCache(default_timeout=180)
 
     def _make_request(self, endpoint, params=None):
         # Create a cache key based on the endpoint and sorted params

@@ -100,9 +100,6 @@ function App() {
           setWatchlistCoins([...watchlistCoins, coinObj]);
         }
         await addToWatchlist(coinId);
-        // Silently pull fresh enriched data for the watchlist
-        const updatedWatchlist = await getWatchlist();
-        setWatchlistCoins(updatedWatchlist);
       }
     } catch (err) {
       console.error("Watchlist action failed:", err);
@@ -135,7 +132,7 @@ function App() {
           {/* Dev Cache status indicator */}
           <div className="hidden sm:flex text-xs text-slate-500 items-center gap-1.5 font-medium border border-slate-900 px-3 py-1.5 rounded-full bg-slate-900/35">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            CoinGecko Cache: Active (60s refresh)
+            CoinGecko Cache: Active (180s refresh)
           </div>
         </div>
       </header>

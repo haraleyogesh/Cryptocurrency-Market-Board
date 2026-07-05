@@ -75,7 +75,35 @@ def get_watchlist():
         if not coin_ids:
             return jsonify([]), 200
             
-        enriched_data = coingecko_service.get_coins_by_ids(coin_ids)
+        # Try to pull from cached top 50 coins first to save API quota
+        top_coins = []
+        try:
+            top_coins = coingecko_service.get_top_coins()
+        except Exception as e:
+            logger.warning(f"Could not load top 50 coins for watchlist enrichment (will fallback): {e}")
+            
+        top_coins_map = {coin['id']: coin for coin in top_coins if 'id' in coin}
+        
+        enriched_data = []
+        missing_ids = []
+        
+        for cid in coin_ids:
+            if cid in top_coins_map:
+                enriched_data.append(top_coins_map[cid])
+            else:
+                missing_ids.append(cid)
+                
+        # If any watchlisted coins are outside the top 50 list, fetch them separately
+        if missing_ids:
+            logger.info(f"Watchlist: {len(missing_ids)} coins not found in top 50 cache. Fetching dynamically: {missing_ids}")
+            try:
+                external_data = coingecko_service.get_coins_by_ids(missing_ids)
+                enriched_data.extend(external_data)
+            except Exception as e:
+                logger.error(f"Watchlist: Failed to fetch missing coins {missing_ids} from CoinGecko: {e}")
+                
+        # Re-sort watchlist by market cap rank to maintain logical order
+        enriched_data.sort(key=lambda x: x.get('market_cap_rank', 999999))
         return jsonify(enriched_data), 200
     except Exception as e:
         logger.error(f"Error fetching watchlist: {e}")
