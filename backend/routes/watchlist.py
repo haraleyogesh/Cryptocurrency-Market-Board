@@ -1,71 +1,80 @@
-from flask import Blueprint, jsonify, request
+import os
+from flask import Blueprint, jsonify, request, current_app
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
-from config import Config
 from services.coingecko import coingecko_service
 import logging
 
+# Configure logger
 logger = logging.getLogger(__name__)
 
 watchlist_bp = Blueprint('watchlist', __name__)
 
-# Initialize MongoDB connection with a fallback mechanism
-mongo_available = False
-watchlist_col = None
+# Global lazy references
+_watchlist_col = None
 
-try:
-    # Set a 2000ms timeout so Flask starts up quickly even if MongoDB is offline
-    client = MongoClient(Config.MONGO_URI, serverSelectionTimeoutMS=2000)
-    # Verify the connection
-    client.admin.command('ping')
-    
-    # Get database (uses the database name from the connection string, or defaults)
-    db = client.get_default_database()
-    watchlist_col = db['watchlist']
-    # Create unique index on coin_id to avoid duplicates
-    watchlist_col.create_index("coin_id", unique=True)
-    
-    mongo_available = True
-    logger.info("MongoDB: Connection established successfully.")
-except (ConnectionFailure, ServerSelectionTimeoutError, Exception) as e:
-    logger.warning(f"MongoDB: Connection failed ({e}). Watchlist will run in temporary in-memory fallback mode.")
-    
-    # In-memory mock collection fallback
-    class InMemoryWatchlist:
-        def __init__(self):
-            self.items = set()
-            
-        def find(self):
-            return [{"coin_id": item} for item in self.items]
-            
-        def insert_one(self, document):
-            coin_id = document.get("coin_id")
-            if not coin_id:
-                raise Exception("Missing coin_id")
-            self.items.add(coin_id)
-            return type('obj', (object,), {'inserted_id': coin_id})()
-            
-        def delete_one(self, query):
-            coin_id = query.get("coin_id")
-            if coin_id in self.items:
-                self.items.remove(coin_id)
-                return type('obj', (object,), {'deleted_count': 1})()
-            return type('obj', (object,), {'deleted_count': 0})()
+def get_watchlist_col():
+    """Lazily initialize the MongoDB connection only when a request arrives."""
+    global _watchlist_col
+    if _watchlist_col is not None:
+        return _watchlist_col
 
-    watchlist_col = InMemoryWatchlist()
+    # Get connection string from current flask config, or fallback to system environment variables
+    mongo_uri = current_app.config.get("MONGO_URI") or os.environ.get("MONGO_URI", "mongodb://localhost:27017/crypto_dashboard")
+    
+    # Redact credentials for logging security
+    safe_uri = mongo_uri.split('@')[-1] if '@' in mongo_uri else mongo_uri
+    logger.info(f"MongoDB: Attempting lazy connection to: {safe_uri}")
+
+    try:
+        # Initialize client with 2000ms selection timeout to prevent long delays in environment checks
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=2000)
+        client.admin.command('ping')
+        
+        db = client.get_default_database()
+        _watchlist_col = db['watchlist']
+        _watchlist_col.create_index("coin_id", unique=True)
+        
+        logger.info("MongoDB: Connection established successfully.")
+    except Exception as e:
+        logger.warning(f"MongoDB: Connection failed ({e}). Falling back to temporary in-memory watchlist.")
+        
+        # In-memory mock collection fallback
+        class InMemoryWatchlist:
+            def __init__(self):
+                self.items = set()
+                
+            def find(self):
+                return [{"coin_id": item} for item in self.items]
+                
+            def insert_one(self, document):
+                coin_id = document.get("coin_id")
+                if not coin_id:
+                    raise Exception("Missing coin_id")
+                self.items.add(coin_id)
+                return type('obj', (object,), {'inserted_id': coin_id})()
+                
+            def delete_one(self, query):
+                coin_id = query.get("coin_id")
+                if coin_id in self.items:
+                    self.items.remove(coin_id)
+                    return type('obj', (object,), {'deleted_count': 1})()
+                return type('obj', (object,), {'deleted_count': 0})()
+
+        _watchlist_col = InMemoryWatchlist()
+        
+    return _watchlist_col
 
 @watchlist_bp.route('/api/watchlist', methods=['GET'])
 def get_watchlist():
     """Fetch saved watchlist and enrich with real-time CoinGecko market data."""
     try:
-        # Retrieve all coin_ids from MongoDB/fallback
+        watchlist_col = get_watchlist_col()
         cursor = watchlist_col.find()
         coin_ids = [doc['coin_id'] for doc in cursor if 'coin_id' in doc]
         
         if not coin_ids:
             return jsonify([]), 200
             
-        # Enrich the watchlist by querying CoinGecko for these specific coin IDs
         enriched_data = coingecko_service.get_coins_by_ids(coin_ids)
         return jsonify(enriched_data), 200
     except Exception as e:
@@ -82,8 +91,7 @@ def add_to_watchlist():
         return jsonify({"error": "Invalid request", "message": "Field 'coin_id' must be a non-empty string"}), 400
         
     try:
-        # Check if already exists in database (or insert)
-        # Using insert_one for simple flow (ignore if database raises DuplicateKeyError)
+        watchlist_col = get_watchlist_col()
         try:
             watchlist_col.insert_one({"coin_id": coin_id})
             status = "added"
@@ -103,6 +111,7 @@ def add_to_watchlist():
 def remove_from_watchlist(coin_id):
     """Remove a coin ID from the watchlist."""
     try:
+        watchlist_col = get_watchlist_col()
         res = watchlist_col.delete_one({"coin_id": coin_id})
         deleted_count = getattr(res, 'deleted_count', 0)
         

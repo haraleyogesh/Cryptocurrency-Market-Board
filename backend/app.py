@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
@@ -13,7 +14,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# Load configurations from object
 app.config.from_object(Config)
+
+# Read MONGO_URI explicitly from the environment using os.environ.get
+app.config['MONGO_URI'] = os.environ.get("MONGO_URI", "mongodb://localhost:27017/crypto_dashboard")
 
 # Enable CORS globally for our frontend connection
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -36,5 +42,8 @@ def server_error(e):
     return jsonify({"error": "Internal Server Error", "message": "An unexpected server error occurred."}), 500
 
 if __name__ == '__main__':
-    logger.info(f"Starting Flask server on {Config.HOST}:{Config.PORT}...")
-    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
+    # Determine host and port from environment (or config defaults)
+    host = os.environ.get("HOST", Config.HOST)
+    port = int(os.environ.get("PORT", Config.PORT))
+    logger.info(f"Starting Flask server on {host}:{port}...")
+    app.run(host=host, port=port, debug=Config.DEBUG)
