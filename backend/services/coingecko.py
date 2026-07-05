@@ -2,11 +2,24 @@ import time
 import threading
 import requests
 import logging
+import os
+import json
 from config import Config
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def load_local_fallback():
+    """Load a local offline snapshot of top coins for startup resilience."""
+    try:
+        fallback_path = os.path.join(os.path.dirname(__file__), 'top50_fallback.json')
+        if os.path.exists(fallback_path):
+            with open(fallback_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load local fallback JSON: {e}")
+    return None
 
 class SimpleCache:
     """Thread-safe, in-memory Cache with Time-To-Live (TTL) and stale fallback support."""
@@ -113,7 +126,20 @@ class CoinGeckoService:
                     )
                     return stale_data
                 
-                # If no stale data is available in cache, propagate the exception
+                # If no stale data is available in cache and this is the top coins query, try the offline JSON snapshot
+                if "coins/markets" in endpoint and "ids=" not in cache_key:
+                    offline_fallback = load_local_fallback()
+                    if offline_fallback is not None:
+                        logger.error(
+                            f"CRITICAL: CoinGecko API call failed for {endpoint} after {attempt + 1} attempts, "
+                            f"and no stale cache is available. Triggering OFFLINE snapshot fallback. "
+                            f"Error Details: {e}"
+                        )
+                        # Seed the cache so future hits succeed instantly
+                        self.cache.set(cache_key, offline_fallback)
+                        return offline_fallback
+                
+                # If no stale data or offline fallback is available, propagate the exception
                 logger.error(f"CRITICAL: CoinGecko API call failed for {endpoint} and no stale cache is available. Error Details: {e}")
                 raise e
 

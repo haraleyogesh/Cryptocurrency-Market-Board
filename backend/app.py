@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
@@ -27,6 +29,57 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 # Register blueprinted routes
 app.register_blueprint(coins_bp)
 app.register_blueprint(watchlist_bp)
+
+def prefetch_coingecko_cache():
+    """Background thread to pre-fetch and seed the CoinGecko cache on startup."""
+    # Give the WSGI worker process 2 seconds to finish binding/init
+    time.sleep(2)
+    logger.info("Startup Pre-fetch: Initiating background cache seeding...")
+    
+    max_attempts = 3
+    retry_delay = 5.0
+    
+    for attempt in range(max_attempts):
+        try:
+            logger.info(f"Startup Pre-fetch: Fetching top coins from CoinGecko (attempt {attempt + 1}/{max_attempts})...")
+            # Import inside the function to avoid circular references during init
+            from services.coingecko import coingecko_service
+            coingecko_service.get_top_coins()
+            logger.info("Startup Pre-fetch: Successfully fetched and cached live market data!")
+            return
+        except Exception as e:
+            logger.warning(
+                f"Startup Pre-fetch: Failed to contact CoinGecko (attempt {attempt + 1}/{max_attempts}): {e}. "
+                f"Retrying in {retry_delay}s..."
+            )
+            time.sleep(retry_delay)
+            retry_delay *= 2.0
+
+    # If it fails completely, seed the cache with local offline snapshot data immediately
+    try:
+        logger.warning("Startup Pre-fetch: Unable to contact CoinGecko. Seeding cache with offline fallback JSON...")
+        from services.coingecko import coingecko_service, load_local_fallback
+        offline_fallback = load_local_fallback()
+        if offline_fallback is not None:
+            # Reconstruct the cache key exactly
+            params = {
+                "vs_currency": "usd",
+                "order": "market_cap_desc",
+                "per_page": 50,
+                "page": 1,
+                "sparkline": "true",
+                "price_change_percentage": "24h"
+            }
+            param_str = "?" + "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+            cache_key = f"coins/markets{param_str}"
+            
+            coingecko_service.cache.set(cache_key, offline_fallback)
+            logger.info("Startup Pre-fetch: Seeded cache with local offline fallback snapshot successfully.")
+    except Exception as ex:
+        logger.error(f"Startup Pre-fetch: Failed to seed offline fallback: {ex}")
+
+# Start pre-fetch worker thread in the background
+threading.Thread(target=prefetch_coingecko_cache, daemon=True).start()
 
 @app.route('/health', methods=['GET'])
 def health():

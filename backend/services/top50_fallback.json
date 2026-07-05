@@ -1,0 +1,132 @@
+[
+  {
+    "id": "bitcoin",
+    "symbol": "btc",
+    "name": "Bitcoin",
+    "image": "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
+    "current_price": 93250.00,
+    "market_cap": 1845000000000,
+    "market_cap_rank": 1,
+    "price_change_percentage_24h": 1.25,
+    "sparkline_in_7d": {
+      "price": [91200, 91500, 92100, 91800, 92400, 92900, 93250]
+    }
+  },
+  {
+    "id": "ethereum",
+    "symbol": "eth",
+    "name": "Ethereum",
+    "image": "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
+    "current_price": 3150.00,
+    "market_cap": 378000000000,
+    "market_cap_rank": 2,
+    "price_change_percentage_24h": -0.85,
+    "sparkline_in_7d": {
+      "price": [3210, 3190, 3180, 3140, 3160, 3120, 3150]
+    }
+  },
+  {
+    "id": "tether",
+    "symbol": "usdt",
+    "name": "Tether",
+    "image": "https://assets.coingecko.com/coins/images/325/large/Tether.png",
+    "current_price": 1.00,
+    "market_cap": 120000000000,
+    "market_cap_rank": 3,
+    "price_change_percentage_24h": 0.05,
+    "sparkline_in_7d": {
+      "price": [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00]
+    }
+  },
+  {
+    "id": "binancecoin",
+    "symbol": "bnb",
+    "name": "BNB",
+    "image": "https://assets.coingecko.com/coins/images/825/large/binance-coin-logo.png",
+    "current_price": 585.50,
+    "market_cap": 85000000000,
+    "market_cap_rank": 4,
+    "price_change_percentage_24h": 2.10,
+    "sparkline_in_7d": {
+      "price": [565, 570, 572, 569, 580, 582, 585.50]
+    }
+  },
+  {
+    "id": "solana",
+    "symbol": "sol",
+    "name": "Solana",
+    "image": "https://assets.coingecko.com/coins/images/4128/large/solana.png",
+    "current_price": 142.20,
+    "market_cap": 66000000000,
+    "market_cap_rank": 5,
+    "price_change_percentage_24h": 4.75,
+    "sparkline_in_7d": {
+      "price": [132, 134, 138, 136, 140, 139, 142.20]
+    }
+  },
+  {
+    "id": "ripple",
+    "symbol": "xrp",
+    "name": "XRP",
+    "image": "https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png",
+    "current_price": 0.585,
+    "market_cap": 33000000000,
+    "market_cap_rank": 6,
+    "price_change_percentage_24h": -1.45,
+    "sparkline_in_7d": {
+      "price": [0.595, 0.590, 0.588, 0.582, 0.586, 0.580, 0.585]
+    }
+  },
+  {
+    "id": "usd-coin",
+    "symbol": "usdc",
+    "name": "USDC",
+    "image": "https://assets.coingecko.com/coins/images/6319/large/usdc.png",
+    "current_price": 1.00,
+    "market_cap": 32000000000,
+    "market_cap_rank": 7,
+    "price_change_percentage_24h": -0.02,
+    "sparkline_in_7d": {
+      "price": [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00]
+    }
+  },
+  {
+    "id": "dogecoin",
+    "symbol": "doge",
+    "name": "Dogecoin",
+    "image": "https://assets.coingecko.com/coins/images/5/large/dogecoin.png",
+    "current_price": 0.142,
+    "market_cap": 20000000000,
+    "market_cap_rank": 8,
+    "price_change_percentage_24h": 3.40,
+    "sparkline_in_7d": {
+      "price": [0.134, 0.136, 0.139, 0.137, 0.141, 0.138, 0.142]
+    }
+  },
+  {
+    "id": "cardano",
+    "symbol": "ada",
+    "name": "Cardano",
+    "image": "https://assets.coingecko.com/coins/images/975/large/cardano.png",
+    "current_price": 0.355,
+    "market_cap": 128000000000,
+    "market_cap_rank": 9,
+    "price_change_percentage_24h": -0.50,
+    "sparkline_in_7d": {
+      "price": [0.360, 0.358, 0.355, 0.352, 0.356, 0.353, 0.355]
+    }
+  },
+  {
+    "id": "avalanche-2",
+    "symbol": "avax",
+    "name": "Avalanche",
+    "image": "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png",
+    "current_price": 24.50,
+    "market_cap": 10000000000,
+    "market_cap_rank": 10,
+    "price_change_percentage_24h": 1.95,
+    "sparkline_in_7d": {
+      "price": [23.5, 23.8, 24.0, 23.9, 24.3, 24.1, 24.5]
+    }
+  }
+]
