@@ -81,6 +81,15 @@ def prefetch_coingecko_cache():
 # Start pre-fetch worker thread in the background
 threading.Thread(target=prefetch_coingecko_cache, daemon=True).start()
 
+@app.after_request
+def add_cache_headers(response):
+    from flask import g
+    status = getattr(g, 'cache_status', None)
+    if status:
+        response.headers['X-Cache-Status'] = status
+        response.headers['Access-Control-Expose-Headers'] = 'X-Cache-Status'
+    return response
+
 @app.route('/health', methods=['GET'])
 def health():
     """Simple API check for verification."""

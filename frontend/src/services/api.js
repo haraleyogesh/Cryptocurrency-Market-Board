@@ -11,7 +11,11 @@ const api = axios.create({
 
 export const getCoins = async () => {
   const response = await api.get('/api/coins');
-  return response.data;
+  const cacheStatus = response.headers['x-cache-status'];
+  return {
+    data: response.data,
+    isFallback: cacheStatus === 'STALE' || cacheStatus === 'OFFLINE'
+  };
 };
 
 export const getCoinDetails = async (id) => {
@@ -28,7 +32,11 @@ export const getCoinHistory = async (id, range = '7d') => {
 
 export const getWatchlist = async () => {
   const response = await api.get('/api/watchlist');
-  return response.data;
+  const cacheStatus = response.headers['x-cache-status'];
+  return {
+    data: response.data,
+    isFallback: cacheStatus === 'STALE' || cacheStatus === 'OFFLINE'
+  };
 };
 
 export const addToWatchlist = async (coinId) => {

@@ -4,11 +4,17 @@ import requests
 import logging
 import os
 import json
+from flask import g, has_request_context
 from config import Config
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def set_cache_status(status):
+    """Set the cache status flag in Flask's request globals if in request context."""
+    if has_request_context():
+        g.cache_status = status
 
 def load_local_fallback():
     """Load a local offline snapshot of top coins for startup resilience."""
@@ -70,6 +76,7 @@ class CoinGeckoService:
         cached_data = self.cache.get(cache_key)
         if cached_data is not None:
             logger.info(f"Cache HIT for: {cache_key}")
+            set_cache_status("HIT")
             return cached_data
 
         # 2. Cache miss or expired: Call CoinGecko with rate limit resilience
@@ -101,6 +108,7 @@ class CoinGeckoService:
                 
                 # Successfully fetched fresh data: overwrite cache
                 self.cache.set(cache_key, data)
+                set_cache_status("MISS")
                 return data
                 
             except requests.exceptions.RequestException as e:
@@ -124,6 +132,7 @@ class CoinGeckoService:
                         f"Triggering stale-while-revalidate fallback: returning last successfully cached data. "
                         f"Error Details: {e}"
                     )
+                    set_cache_status("STALE")
                     return stale_data
                 
                 # If no stale data is available in cache and this is the top coins query, try the offline JSON snapshot
@@ -137,6 +146,7 @@ class CoinGeckoService:
                         )
                         # Seed the cache so future hits succeed instantly
                         self.cache.set(cache_key, offline_fallback)
+                        set_cache_status("OFFLINE")
                         return offline_fallback
                 
                 # If no stale data or offline fallback is available, propagate the exception

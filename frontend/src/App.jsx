@@ -44,6 +44,7 @@ function App() {
   const [selectedCoinId, setSelectedCoinId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFallback, setIsFallback] = useState(false);
   const [error, setError] = useState(null);
 
   // Core data synchronization
@@ -55,14 +56,15 @@ function App() {
         setLoading(true);
       }
       
-      const [allCoins, watchlistData] = await Promise.all([
+      const [coinsRes, watchlistRes] = await Promise.all([
         getCoins(),
         getWatchlist()
       ]);
 
-      setCoins(allCoins);
-      setWatchlistCoins(watchlistData);
-      setWatchlistIds(watchlistData.map(c => c.id));
+      setCoins(coinsRes.data);
+      setWatchlistCoins(watchlistRes.data);
+      setWatchlistIds(watchlistRes.data.map(c => c.id));
+      setIsFallback(coinsRes.isFallback || watchlistRes.isFallback);
       setError(null);
     } catch (err) {
       console.error("API sync error:", err);
@@ -153,6 +155,16 @@ function App() {
               >
                 Retry Connection
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback Data Alert Banner */}
+        {isFallback && !error && (
+          <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center justify-between gap-3 text-amber-300 text-xs font-semibold animate-fade-in glass-panel">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+              <span>Showing cached database snapshot — Live prices temporarily unavailable due to API limits. Live stats will automatically refresh.</span>
             </div>
           </div>
         )}
